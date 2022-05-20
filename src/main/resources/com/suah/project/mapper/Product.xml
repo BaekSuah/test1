@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.suah.project.mapper.Product">
+
+	<!-- 베스트 상품 조회 -->
+	<select id="listBestProduct" resultType="com.suah.project.domain.ProductVO">
+		SELECT * FROM best_pro_view
+	</select>
+	
+	<!-- 신상품 조회 -->
+	<select id="listNewProduct" resultType="com.suah.project.domain.ProductVO">
+		SELECT * FROM new_pro_view
+	</select>
+
+	<!-- 카테고리(1:Heal) -->
+	<select id="listKindProduct" parameterType="int" resultType="com.suah.project.domain.ProductVO">
+		SELECT * FROM product WHERE kind=#{kind}
+	</select>
+	
+	<!-- 개별 상품 조회 -->
+	<select id="getProduct" parameterType="int" resultType="com.suah.project.domain.ProductVO">
+		SELECT * FROM product WHERE pseq=#{pseq}
+	</select>
+	
+	
+</mapper>

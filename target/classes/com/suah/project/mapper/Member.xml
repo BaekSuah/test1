@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.suah.project.mapper.Member">
+
+	<insert id="insertMember" parameterType="com.suah.project.domain.MemberVO">
+		
+		<!-- 회원 정보 생성 -->
+		INSERT INTO member VALUES ( #{id},
+									#{pwd},
+									#{name},
+									#{email},
+									#{phone},
+									#{zipNum},
+									#{address1},
+									#{address2},
+									#{useyn},
+									sysdate)
+	</insert>
+	
+	<!--  회원정보 롤(role) 생성 -->
+	<insert id="insertRole" parameterType="com.suah.project.domain.RoleVO">
+		INSERT INTO member_role VALUES (role_seq.nextval, #{id}, #{role})
+	</insert>
+	
+	
+	<!-- 개별 회원정보 존재 여부 점검 : 아이디 중복 점검 -->
+	<select id="isMember" parameterType="String" resultType="int">
+		SELECT count(*) FROM member WHERE id=#{id}
+	</select>
+	
+	<!-- 개별 회원정보 존재 여부 점검 : 아이디 중복 점검 -->
+	<select id="isEmail" parameterType="String" resultType="int">
+		SELECT count(*) FROM member WHERE email=#{email}
+	</select>
+	
+	<!-- 개별 회원정보 존재 여부 점검 : 연락처 중복 점검 -->
+	<select id="isPhone" parameterType="String" resultType="int">
+		SELECT count(*) FROM member WHERE phone=#{phone}
+	</select>
+	
+	
+	<!-- 회원 아이디/비밀번호 일치 여부 -> 로그인 점검 -->
+	<select id="checkIdPwd" parameterType="com.suah.project.domain.MemberVO" resultType="int">
+		SELECT count(*) FROM member WHERE id=#{id} AND pwd=#{pwd}
+	</select>
+
+	<!-- 개별 회원 정보 조회 -->
+	<select id="getMember" parameterType="String" resultType="com.suah.project.domain.MemberVO">
+		SELECT * FROM member WHERE id=#{id}
+	</select>
+
+	<!-- 개별 회원 정보 갱신(수정) -->
+	<update id="updateMember" parameterType="com.suah.project.domain.MemberVO">
+		UPDATE member SET pwd=#{pwd},
+					 	  email=#{email},
+						  phone=#{phone},
+						  zip_num=#{zipNum},
+						  address1=#{address1},
+						  address2=#{address2},
+						  useyn=#{useyn}
+						  WHERE id =#{id}
+	</update>
+	
+	<!-- 이메일 중복 점검 : 회원 정보 수정시 -->
+	<select id="isEmailOnUpdate" parameterType="hashmap" resultType="int">
+		SELECT count(*) FROM (SELECT email FROM member WHERE id !=#{id}) 
+		WHERE email=#{email}
+	</select>
+	
+	<!-- 연락처 중복 점검 : 회원 정보 수정시 -->
+	<select id="isPhoneOnUpdate" parameterType="hashmap" resultType="int">
+		SELECT count(*) FROM (SELECT phone FROM member WHERE id !=#{id}) 
+		WHERE phone=#{phone}
+	</select>
+	
+	<!-- 회원 탈퇴 처리 / 비활성화 (useyn)=N -->
+	<update id="inactiveMember" parameterType="String">
+		UPDATE member SET useyn='n' WHERE id=#{id}
+	</update>
+	
+	<!-- 회원 탈퇴 처리 / 롤(Role) 게스트(guest) 하향화 -->
+	<update id="inactiveRole" parameterType="String">
+		UPDATE member_role SET role='guest' WHERE id=#{id}
+	</update>
+	
+	<!-- 회원 활성화 여부 점검(활동/탈퇴 회원 점검) -->
+	<select id="isActiveMember" parameterType="String" resultType="String">
+		SELECT useyn FROM member WHERE id=#{id}
+	</select>
+	
+	<!-- 탈퇴 회원 정보 재사용 처리 / 활성화 (useyn)=Y/N -->
+	<update id="activeMember" parameterType="hashmap">
+		UPDATE member SET useyn=#{useyn} WHERE id=#{id}
+	</update>
+	
+	<!-- 회원 탈퇴 처리 / 롤(Role) 유저(user)/게스트(guest) -->
+	<update id="activeRole" parameterType="hashmap">
+		UPDATE member_role SET role=#{role} WHERE id=#{id}
+	</update>
+	
+	<!-- 탈퇴 회원 정보 확인 -->
+	<select id="isInactiveMember" parameterType="com.suah.project.domain.MemberVO" resultType="int">
+		SELECT count(*) FROM member
+		WHERE id= #{id}
+		  AND pwd= #{pwd}
+		  AND email= #{email}
+		  AND phone= #{phone}
+	</select>
+	
+	<!--  개별회원 롤(role) 정보 조회 -->
+	<select id="getRole" parameterType="String" resultType="String">
+		SELECT role FROM member_role WHERE id=#{id}
+	</select>
+	
+	<!-- 전체 회원 조회 (페이징 적용) -->
+<!-- 	<select id="getMemberByPaging" parameterType="hashmap" resultType="com.suah.project.domain.MemberVO">
+		SELECT *  
+		FROM (SELECT ROWNUM,  
+             	   m.*,  
+             	   FLOOR((ROWNUM - 1) / #{limit} + 1) page  
+		FROM (SELECT * FROM member  
+         	ORDER BY id ASC
+           ) m  
+    	   )  
+		WHERE page = #{page}
+		</select> -->
+		
+	<!--  전체 회원 조회(페이징 적용 + 롤 추가) -->
+	<select id="getMemberByPaging" parameterType="hashmap" resultType="com.suah.project.domain.MemberRoleVO">
+		SELECT *  
+		FROM (SELECT ROWNUM,  
+             	   m.*,  
+             	   FLOOR((ROWNUM - 1) / #{limit} + 1) page  
+		FROM (SELECT m.id, m.pwd, m.name, m.email, m.phone, m.zip_num, m.address1, m.address2, m.useyn, m.indate, r.role 
+			  FROM member m, member_role r
+		  	  WHERE m.id = r.id
+			  ORDER BY id ASC
+             ) m  
+    	     )  
+		WHERE page = #{page}
+		</select>
+		
+	<!-- 총 회원 수 조회 -->
+	<select id="getTotalMemberCount" resultType="int">
+		SELECT count(*) FROM member
+	</select>
+		
+	
+</mapper>
